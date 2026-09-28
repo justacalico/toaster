@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <rect width="1024" height="1024" rx="200" fill="#232329"/>
+  <!-- toast slice popping up -->
+  <g transform="translate(512 330)">
+    <path d="M-120 -60 q0 -70 60 -70 h120 q60 0 60 70 v30 q0 20 -20 20 h-200 q-20 0 -20 -20 z" fill="#E8A15C"/>
+    <rect x="-100" y="-10" width="200" height="30" rx="8" fill="#C97B36"/>
+  </g>
+  <!-- toaster body -->
+  <g transform="translate(512 620)">
+    <rect x="-220" y="-110" width="440" height="240" rx="60" fill="#4A7FB5"/>
+    <rect x="-220" y="-110" width="440" height="240" rx="60" fill="none" stroke="#31567E" stroke-width="10"/>
+    <!-- slot -->
+    <rect x="-110" y="-100" width="220" height="26" rx="13" fill="#1B1B1F"/>
+    <!-- lever -->
+    <rect x="230" y="-30" width="60" height="18" rx="9" fill="#8C97A3"/>
+    <circle cx="292" cy="-21" r="18" fill="#D6D9DE"/>
+    <!-- knob -->
+    <circle cx="-140" cy="70" r="26" fill="#2E5A87"/>
+    <circle cx="-140" cy="70" r="12" fill="#1B1B1F"/>
+    <!-- feet -->
+    <rect x="-160" y="130" width="50" height="24" rx="10" fill="#1B1B1F"/>
+    <rect x="110" y="130" width="50" height="24" rx="10" fill="#1B1B1F"/>
+  </g>
+</svg>
