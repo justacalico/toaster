@@ -54,3 +54,6 @@ credentials.txt
 # coverage & build artifacts
 coverage/
 *.lcov
+
+# golden test diffs
+test/failures/
