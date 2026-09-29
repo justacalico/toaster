@@ -5,7 +5,7 @@ import 'vec3.dart';
 
 /// Mesh editing operations. Pure functions over [Mesh] + index selections.
 class MeshOps {
-  MeshOps._();
+  MeshOps._(); // coverage:ignore-line
 
   /// Extrudes the given faces: duplicates their verts, builds side walls,
   /// returns the vertex indices of the extruded caps (for the grab session).
@@ -80,7 +80,8 @@ class MeshOps {
 
   /// Splits each selected face into quads (edge midpoints + face center).
   /// Faces sharing an edge keep working since midpoints sit on the edge.
-  static void subdivide(Mesh m, Set<int> faceIdx) {
+  /// Returns the indices of the created faces.
+  static Set<int> subdivide(Mesh m, Set<int> faceIdx) {
     final mids = <(int, int), int>{};
     int midpoint(int a, int b) {
       final key = a < b ? (a, b) : (b, a);
@@ -91,6 +92,7 @@ class MeshOps {
     }
 
     final newFaces = <List<int>>[];
+    final created = <int>{};
     for (var fi = 0; fi < m.faces.length; fi++) {
       if (!faceIdx.contains(fi)) {
         newFaces.add(m.faces[fi]);
@@ -102,30 +104,52 @@ class MeshOps {
         final prev = f[(i + f.length - 1) % f.length];
         final cur = f[i];
         final next = f[(i + 1) % f.length];
+        created.add(newFaces.length);
         newFaces.add([cur, midpoint(cur, next), c, midpoint(prev, cur)]);
       }
     }
     m.faces
       ..clear()
       ..addAll(newFaces);
+    return created;
   }
 
-  /// Splits loose edges at their midpoint.
+  /// Splits edges at their midpoint. Loose edges break in two; edges that
+  /// belong to faces get the midpoint inserted into the face loop.
+  /// Returns the created vertex indices.
   static Set<int> subdivideEdges(Mesh m, Set<int> edgeIdx) {
     final all = m.allEdges().toList();
-    final created = <int>{};
-    final edgeSet = m.edges.toSet();
-    for (final ei in edgeIdx.toList()..sort()) {
+    final mids = <(int, int), int>{};
+    for (final ei in edgeIdx) {
       if (ei >= all.length) continue;
       final e = all[ei];
-      if (!edgeSet.contains(e)) continue;
-      final mid = m.addVertex((m.vertices[e.$1] + m.vertices[e.$2]) / 2);
-      m.edges.remove(e);
-      m.edges.add((e.$1, mid));
-      m.edges.add((mid, e.$2));
-      created.add(mid);
+      mids[e] = m.addVertex((m.vertices[e.$1] + m.vertices[e.$2]) / 2);
     }
-    return created;
+    // face edges: insert midpoint into each containing face's loop
+    for (var fi = 0; fi < m.faces.length; fi++) {
+      final f = m.faces[fi];
+      final nf = <int>[];
+      for (var i = 0; i < f.length; i++) {
+        final a = f[i], b = f[(i + 1) % f.length];
+        nf.add(a);
+        final key = a < b ? (a, b) : (b, a);
+        final mid = mids[key];
+        if (mid != null) nf.add(mid);
+      }
+      if (nf.length != f.length) m.faces[fi] = nf;
+    }
+    // loose edges: break into two
+    final loose = m.edges.toSet();
+    for (final e in mids.keys) {
+      if (loose.remove(e)) {
+        final mid = mids[e]!;
+        m.edges
+          ..remove(e)
+          ..add((e.$1, mid))
+          ..add((mid, e.$2));
+      }
+    }
+    return mids.values.toSet();
   }
 
   /// Builds an n-gon from a vertex set, ordered around the centroid.

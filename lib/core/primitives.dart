@@ -5,7 +5,7 @@ import 'vec3.dart';
 
 /// Primitive mesh generators. All are centered at the origin, Z-up.
 class Primitives {
-  Primitives._();
+  Primitives._(); // coverage:ignore-line
 
   static const names = [
     'Cube',

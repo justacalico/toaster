@@ -68,7 +68,7 @@ void main() {
       expect(m.faces.length, 4 + 8);
     });
 
-    test('subdivideEdges splits loose edges only', () {
+    test('subdivideEdges splits loose edges', () {
       final m = Mesh(
         vertices: [Vec3.zero, const Vec3(2, 0, 0)],
         edges: [(0, 1)],
@@ -77,9 +77,16 @@ void main() {
       expect(created.single, 2);
       expect(m.edges.length, 2);
       expect(m.vertices[2], const Vec3(1, 0, 0));
-      // face edges are not loose, ignored
+    });
+
+    test('subdivideEdges inserts midpoints into face loops', () {
       final c = Primitives.cube();
-      expect(MeshOps.subdivideEdges(c, {0}), isEmpty);
+      final created = MeshOps.subdivideEdges(c, {0});
+      expect(created.single, 8);
+      // edge (0,1) belongs to 2 faces; each becomes a pentagon
+      expect(c.faces.where((f) => f.length == 5).length, 2);
+      // out-of-range index ignored
+      expect(MeshOps.subdivideEdges(c, {999}), isEmpty);
     });
   });
 

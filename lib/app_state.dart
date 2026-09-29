@@ -559,10 +559,7 @@ class AppState extends ChangeNotifier {
     if (mode != EditorMode.edit || obj == null) return;
     _pushUndo();
     if (selMode == SelMode.face && selFaces.isNotEmpty) {
-      final count = obj.mesh.faces.length;
-      MeshOps.subdivide(obj.mesh, selFaces);
-      // select the new faces
-      selFaces = List.generate(obj.mesh.faces.length - count, (i) => count + i).toSet();
+      selFaces = MeshOps.subdivide(obj.mesh, selFaces);
     } else if (selMode == SelMode.vertex && selVerts.isNotEmpty) {
       // subdivide edges touched by selected verts? Blender subdivides edges.
       final all = obj.mesh.allEdges().toList();

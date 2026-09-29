@@ -32,10 +32,12 @@ class _PropertiesPanelState extends State<PropertiesPanel> {
           child: Row(
             children: [
               for (final (i, label) in ['Item', 'Material', 'Modifiers'].indexed)
-                _TabChip(
-                  label: label,
-                  active: _tab == i,
-                  onTap: () => setState(() => _tab = i),
+                Expanded(
+                  child: _TabChip(
+                    label: label,
+                    active: _tab == i,
+                    onTap: () => setState(() => _tab = i),
+                  ),
                 ),
             ],
           ),
@@ -65,11 +67,14 @@ class _TabChip extends StatelessWidget {
   Widget build(BuildContext context) => InkWell(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          padding: const EdgeInsets.symmetric(vertical: 7),
+          alignment: Alignment.center,
           decoration: BoxDecoration(
             border: Border(bottom: BorderSide(color: active ? T.accent : Colors.transparent, width: 2)),
           ),
-          child: Text(label, style: TextStyle(fontSize: 11.5, color: active ? T.text : T.textDim)),
+          child: Text(label,
+              style: TextStyle(fontSize: 11.5, color: active ? T.text : T.textDim),
+              overflow: TextOverflow.ellipsis),
         ),
       );
 }
@@ -257,8 +262,9 @@ class _MaterialTab extends StatelessWidget {
             crossAxisSpacing: 4,
             padding: const EdgeInsets.all(8),
             children: [
-              for (final c in palette)
+              for (final (i, c) in palette.indexed)
                 InkWell(
+                  key: ValueKey('swatch-$i'),
                   onTap: () => app.setActiveColor(Color(c)),
                   child: Container(
                     decoration: BoxDecoration(

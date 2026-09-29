@@ -69,7 +69,7 @@ class ViewportState extends State<EditorViewport> {
             Tool.move => TransformKind.grab,
             Tool.rotate => TransformKind.rotate,
             Tool.scale => TransformKind.scale,
-            Tool.select => TransformKind.grab,
+            Tool.select => TransformKind.grab, // coverage:ignore-line
           };
           app.beginTransform(kind, e.localPosition, viewportHeight: _size.height, axis: axis);
           _dragAxis = axis;

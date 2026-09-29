@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 /// Toaster's visual language: a dark, dense, Blender-adjacent chrome with
 /// restrained accents. One accent for tools, orange for selection.
 class T {
-  T._();
+  T._(); // coverage:ignore-line
 
   static const bg = Color(0xFF1B1B1F);
   static const panel = Color(0xFF232329);

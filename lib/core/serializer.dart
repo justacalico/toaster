@@ -6,7 +6,7 @@ import 'vec3.dart';
 
 /// Scene serialization: .toast JSON format plus OBJ import/export.
 class Serializer {
-  Serializer._();
+  Serializer._(); // coverage:ignore-line
 
   static const fileExtension = 'toast';
 

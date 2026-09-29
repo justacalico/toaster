@@ -33,6 +33,7 @@ Future<void> showSaveDialog(BuildContext context) async {
         ],
       ),
       actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
         TextButton(
           onPressed: () => Navigator.pop(context, 'clipboard'),
           child: const Text('Copy JSON'),
@@ -159,6 +160,7 @@ Future<void> showExportObjDialog(BuildContext context) async {
             )
           : Text('Copy the OBJ text to your clipboard.', style: T.hint),
       actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
         TextButton(
           onPressed: () => Navigator.pop(context, 'clipboard'),
           child: const Text('Copy'),

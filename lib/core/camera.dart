@@ -46,10 +46,6 @@ class OrbitCamera {
 
   Vec3 _upHint() => pitch.abs() > math.pi / 2 - 0.01 ? Vec3.unitY : Vec3.unitZ;
 
-  Mat4 proj(double aspect) => perspective
-      ? Mat4.perspective(fovY, aspect, near, far)
-      : Mat4.ortho(orthoHeight, aspect, near, far);
-
   void orbit(double dYaw, double dPitch) {
     yaw -= dYaw;
     pitch = (pitch + dPitch).clamp(-math.pi / 2 + 0.001, math.pi / 2 - 0.001);

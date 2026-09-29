@@ -138,10 +138,12 @@ class SceneObject {
                   .toList() ??
               [],
         ),
-        location: Vec3.fromJson(j['location'] as List),
-        rotation: Vec3.fromJson(j['rotation'] as List),
-        scale: Vec3.fromJson(j['scale'] as List),
-        material: ShadeMaterial.fromJson(j['material'] as Map<String, dynamic>),
+        location: j['location'] is List ? Vec3.fromJson(j['location'] as List) : Vec3.zero,
+        rotation: j['rotation'] is List ? Vec3.fromJson(j['rotation'] as List) : Vec3.zero,
+        scale: j['scale'] is List ? Vec3.fromJson(j['scale'] as List) : const Vec3(1, 1, 1),
+        material: j['material'] is Map<String, dynamic>
+            ? ShadeMaterial.fromJson(j['material'] as Map<String, dynamic>)
+            : ShadeMaterial(),
         visible: j['visible'] as bool? ?? true,
         smoothShading: j['smoothShading'] as bool? ?? false,
         modifiers: (j['modifiers'] as List?)
