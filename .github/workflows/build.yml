@@ -122,6 +122,7 @@ jobs:
           xvfb-run -a flutter test --coverage
           lcov --remove coverage/lcov.info \
             '**/*.g.dart' '**/*.freezed.dart' '**/l10n/**' \
+            --ignore-errors unused \
             -o coverage/lcov.cleaned.info
           lcov --summary coverage/lcov.cleaned.info --fail-under-lines 100
 
