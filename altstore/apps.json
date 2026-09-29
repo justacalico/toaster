@@ -1,0 +1,16 @@
+{
+  "name": "toaster",
+  "identifier": "com.toaster.toaster.source",
+  "iconURL": "https://httpanimations.gitlab.io/toaster/icon-1024.png",
+  "apps": [
+    {
+      "name": "toaster",
+      "bundleIdentifier": "com.toaster.toaster",
+      "developerName": "HttpAnimations",
+      "iconURL": "https://httpanimations.gitlab.io/toaster/icon-1024.png",
+      "tintedIconURL": "https://httpanimations.gitlab.io/toaster/icon-1024.png",
+      "versions": [],
+      "news": []
+    }
+  ]
+}
