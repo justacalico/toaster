@@ -720,6 +720,16 @@ void main() {
       s.applyAllModifiers(0); // empty stack no-op
     });
 
+    test('applyModifier bakes the prefix up to the target', () {
+      final s = state();
+      s.addModifier('array');
+      s.addModifier('mirror');
+      // apply index 1 (mirror): array+mirror bake into the mesh
+      s.applyModifier(0, 1);
+      expect(s.activeObj!.modifiers, isEmpty);
+      expect(s.activeObj!.mesh.vertices.length, 32); // 8 -> array x2 -> mirror x2
+    });
+
     test('applyAllModifiers bakes the stack', () {
       final s = state();
       s.addModifier('subdivision');

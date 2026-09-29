@@ -128,7 +128,7 @@ class SceneObject {
 
   factory SceneObject.fromJson(Map<String, dynamic> j) => SceneObject(
         name: j['name'] as String,
-        mesh: Mesh(
+        mesh: _sanitizeMesh(
           vertices: (j['vertices'] as List).map((v) => Vec3.fromJson(v as List)).toList(),
           faces: (j['faces'] as List).map((f) => (f as List).map((i) => (i as num).toInt()).toList()).toList(),
           edges: (j['edges'] as List?)
@@ -151,6 +151,24 @@ class SceneObject {
                 .toList() ??
             [],
       );
+
+  /// Drops faces/edges referencing vertex indices that don't exist so a
+  /// malformed file can't crash the renderer.
+  static Mesh _sanitizeMesh({
+    required List<Vec3> vertices,
+    required List<List<int>> faces,
+    required List<(int, int)> edges,
+  }) {
+    final n = vertices.length;
+    return Mesh(
+      vertices: vertices,
+      faces: faces
+          .map((f) => f.where((i) => i >= 0 && i < n).toList())
+          .where((f) => f.length >= 3)
+          .toList(),
+      edges: edges.where((e) => e.$1 >= 0 && e.$1 < n && e.$2 >= 0 && e.$2 < n).toList(),
+    );
+  }
 }
 
 /// The whole scene.

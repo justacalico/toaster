@@ -69,7 +69,8 @@ class MirrorModifier extends MeshModifier {
           input.vertices[e.$2].axisValue(axis).abs() < mergeDistance) {
         continue;
       }
-      out.edges.add((remap[e.$1], remap[e.$2]));
+      final a = remap[e.$1], b = remap[e.$2];
+      out.edges.add(a < b ? (a, b) : (b, a));
     }
     return out;
   }
@@ -133,7 +134,8 @@ class ArrayModifier extends MeshModifier {
         out.faces.add(f.map((v) => v + base).toList());
       }
       for (final e in input.edges) {
-        out.edges.add((e.$1 + base, e.$2 + base));
+        final a = e.$1 + base, b = e.$2 + base;
+        out.edges.add(a < b ? (a, b) : (b, a));
       }
     }
     return out;
@@ -398,7 +400,7 @@ class BevelModifier extends MeshModifier {
       }
       if (ok && cap.length >= 3) out.faces.add(cap);
     }
-    out.edges.addAll(List.of(m.edges));
+    // loose edges index into the old vertex list and are meaningless here
     return out;
   }
 
@@ -436,12 +438,14 @@ class SolidifyModifier extends MeshModifier {
   Mesh apply(Mesh input) {
     final out = Mesh(vertices: List.of(input.vertices));
     final n = input.faces.length;
-    // duplicate verts offset by -thickness along the face normal for the back faces
+    // average face normals per vertex so shared verts move consistently
+    final vN = input.vertexNormals();
+    // duplicate verts offset by -thickness along the vertex normal
     final backIndex = List<int>.filled(input.vertices.length, -1);
-    int backVert(int v, Vec3 off) {
+    int backVert(int v) {
       if (backIndex[v] < 0) {
         backIndex[v] = out.vertices.length;
-        out.vertices.add(input.vertices[v] + off);
+        out.vertices.add(input.vertices[v] - vN[v] * thickness);
       }
       return backIndex[v];
     }
@@ -450,19 +454,14 @@ class SolidifyModifier extends MeshModifier {
     for (var fi = 0; fi < n; fi++) {
       final f = input.faces[fi];
       out.faces.add(List.of(f));
-      final off = input.faceNormal(fi) * -thickness;
-      final back = f.map((v) => backVert(v, off)).toList().reversed.toList();
+      final back = f.map(backVert).toList().reversed.toList();
       out.faces.add(back);
     }
     // walls on boundary edges
     for (final e in edgeFaces.keys) {
       if (edgeFaces[e]!.length == 1) {
-        final fi = edgeFaces[e]!.first;
-        final off = input.faceNormal(fi) * -thickness;
-        final b1 = backVert(e.$1, off);
-        final b2 = backVert(e.$2, off);
         // orient the wall so it faces outward
-        out.faces.add([e.$2, e.$1, b1, b2]);
+        out.faces.add([e.$2, e.$1, backVert(e.$1), backVert(e.$2)]);
       }
     }
     for (final e in input.edges) {

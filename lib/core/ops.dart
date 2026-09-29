@@ -7,28 +7,43 @@ import 'vec3.dart';
 class MeshOps {
   MeshOps._(); // coverage:ignore-line
 
-  /// Extrudes the given faces: duplicates their verts, builds side walls,
-  /// returns the vertex indices of the extruded caps (for the grab session).
+  /// Extrudes the given faces as a region: shared vertices are duplicated
+  /// once, edges between two selected faces become interior (no wall),
+  /// and walls are only built on the selection boundary. Returns the
+  /// vertex indices of the extruded cap (for the grab session).
   static List<int> extrudeFaces(Mesh m, Set<int> faceIdx) {
-    final moved = <int>[];
-    final newFaces = <int>{};
-    for (final fi in faceIdx.toList()..sort()) {
+    // count how many selected faces touch each perimeter edge
+    final edgeUse = <(int, int), int>{};
+    final dirEdge = <(int, int), (int, int)>{};
+    for (final fi in faceIdx) {
       final f = m.faces[fi];
-      final dup = <int>[];
-      for (final v in f) {
-        dup.add(m.addVertex(m.vertices[v]));
-      }
-      // side walls
       for (var i = 0; i < f.length; i++) {
         final a = f[i], b = f[(i + 1) % f.length];
-        m.faces.add([a, b, dup[(i + 1) % f.length], dup[i]]);
+        final key = a < b ? (a, b) : (b, a);
+        edgeUse[key] = (edgeUse[key] ?? 0) + 1;
+        dirEdge[key] = (a, b);
+      }
+    }
+    // one duplicate per source vertex, shared across the whole region
+    final dupOf = <int, int>{};
+    int dup(int v) => dupOf.putIfAbsent(v, () => m.addVertex(m.vertices[v]));
+
+    for (final fi in faceIdx) {
+      final f = m.faces[fi];
+      final cap = f.map(dup).toList();
+      // side walls only on boundary edges (used by exactly one selected face)
+      for (var i = 0; i < f.length; i++) {
+        final a = f[i], b = f[(i + 1) % f.length];
+        final key = a < b ? (a, b) : (b, a);
+        if ((edgeUse[key] ?? 0) == 1) {
+          final (sa, sb) = dirEdge[key]!;
+          m.faces.add([sa, sb, dup(sb), dup(sa)]);
+        }
       }
       // cap replaces the original face
-      m.faces[fi] = dup;
-      moved.addAll(dup);
-      newFaces.add(fi);
+      m.faces[fi] = cap;
     }
-    return moved;
+    return dupOf.values.toList();
   }
 
   /// Extrudes selected vertices (creates loose edges).
@@ -274,8 +289,15 @@ class MeshOps {
       m.faces[i] = m.faces[i].map((v) => finalMap[v]).toSet().toList();
     }
     m.faces.removeWhere((f) => f.length < 3);
-    m.edges.clear();
-    m.edges.addAll(m.allEdges().where((e) => e.$1 != e.$2));
+    // remap existing loose edges only; face perimeter edges are implicit
+    final remapped = <(int, int)>{};
+    for (final e in m.edges) {
+      final a = finalMap[e.$1], b = finalMap[e.$2];
+      if (a != b) remapped.add(a < b ? (a, b) : (b, a));
+    }
+    m.edges
+      ..clear()
+      ..addAll(remapped);
     return finalMap;
   }
 

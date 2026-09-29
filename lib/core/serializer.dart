@@ -50,21 +50,31 @@ class Serializer {
       switch (parts[0]) {
         case 'v':
           if (parts.length >= 4) {
-            mesh.vertices.add(Vec3(
-              double.parse(parts[1]),
-              double.parse(parts[2]),
-              double.parse(parts[3]),
-            ));
+            final x = double.tryParse(parts[1]);
+            final y = double.tryParse(parts[2]);
+            final z = double.tryParse(parts[3]);
+            if (x == null || y == null || z == null) break;
+            mesh.vertices.add(Vec3(x, y, z));
           }
         case 'f':
           final f = <int>[];
+          var bad = false;
           for (var i = 1; i < parts.length; i++) {
             final tok = parts[i].split('/').first;
-            var idx = int.parse(tok);
+            var idx = int.tryParse(tok);
+            if (idx == null || idx == 0) {
+              bad = true;
+              break;
+            }
             if (idx < 0) idx = mesh.vertices.length + idx + 1;
-            f.add(idx - 1);
+            idx -= 1;
+            if (idx < 0 || idx >= mesh.vertices.length) {
+              bad = true;
+              break;
+            }
+            f.add(idx);
           }
-          if (f.length >= 3) mesh.faces.add(f);
+          if (!bad && f.length >= 3) mesh.faces.add(f);
       }
     }
     return mesh;

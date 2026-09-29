@@ -33,6 +33,7 @@ class SceneSnapshot {
   final int? editTarget;
   final Set<int> selVerts, selEdges, selFaces;
   final EditorMode mode;
+  final SelMode selMode;
 
   SceneSnapshot(AppState s)
       : scene = s.scene.clone(),
@@ -42,7 +43,8 @@ class SceneSnapshot {
         selVerts = Set.of(s.selVerts),
         selEdges = Set.of(s.selEdges),
         selFaces = Set.of(s.selFaces),
-        mode = s.mode;
+        mode = s.mode,
+        selMode = s.selMode;
 }
 
 /// In-progress G/R/S transform.
@@ -145,6 +147,16 @@ class AppState extends ChangeNotifier {
   /// (e.g. modifier fields) directly.
   void refresh() => notifyListeners();
 
+  /// Pushes an undo snapshot before mutating a modifier's fields.
+  /// Call from change-start callbacks (sliders) or before a one-shot toggle.
+  void beginModifierEdit() => _pushUndo();
+
+  /// Marks the scene dirty after a modifier field changed.
+  void modifierChanged() {
+    markDirty();
+    notifyListeners();
+  }
+
   SceneSnapshot _snap() => SceneSnapshot(this);
 
   void _pushUndo() {
@@ -161,6 +173,7 @@ class AppState extends ChangeNotifier {
     selEdges = s.selEdges;
     selFaces = s.selFaces;
     mode = s.mode;
+    selMode = s.selMode;
     transform = null;
     _preTransform = null;
     notifyListeners();
@@ -227,12 +240,8 @@ class AppState extends ChangeNotifier {
     _pushUndo();
     final doomed = Set.of(selectedObjects);
     final remaining = <SceneObject>[];
-    final remap = List<int>.filled(scene.objects.length, -1);
     for (var i = 0; i < scene.objects.length; i++) {
-      if (!doomed.contains(i)) {
-        remap[i] = remaining.length;
-        remaining.add(scene.objects[i]);
-      }
+      if (!doomed.contains(i)) remaining.add(scene.objects[i]);
     }
     scene.objects
       ..clear()
@@ -295,6 +304,16 @@ class AppState extends ChangeNotifier {
   // ---------- selection ----------
 
   void selectObject(int i, {bool additive = false}) {
+    // switching objects while in edit mode moves edit mode along
+    if (mode == EditorMode.edit && !additive && i != editTarget) {
+      exitEditMode();
+      selectedObjects
+        ..clear()
+        ..add(i);
+      activeObject = i;
+      enterEditMode();
+      return;
+    }
     if (!additive) selectedObjects.clear();
     if (additive && selectedObjects.contains(i)) {
       selectedObjects.remove(i);
@@ -468,7 +487,7 @@ class AppState extends ChangeNotifier {
         notifyListeners();
         return true;
       case SelMode.face:
-        final hit = rayMesh(ro, rd, obj);
+        final hit = rayMesh(ro, rd, obj, mesh: obj.mesh);
         if (hit == null) return false;
         _toggleIn(selFaces, hit.$2, additive);
         notifyListeners();
@@ -626,6 +645,12 @@ class AppState extends ChangeNotifier {
   void deleteEditSelection() {
     final obj = editObj;
     if (mode != EditorMode.edit || obj == null) return;
+    if (selMode == SelMode.vertex && selVerts.isEmpty ||
+        selMode == SelMode.edge && selEdges.isEmpty ||
+        selMode == SelMode.face && selFaces.isEmpty) {
+      setHint('Nothing selected');
+      return;
+    }
     _pushUndo();
     switch (selMode) {
       case SelMode.face:
@@ -769,7 +794,7 @@ class AppState extends ChangeNotifier {
       case TransformKind.scale:
         var f = math.exp(dx * 0.004).toDouble();
         if (snapEnabled) {
-          f = (f * 10).roundToDouble() / 10;
+          f = math.max(0.05, (f * 10).roundToDouble() / 10);
         }
         t.scaleFactor = t.axis >= 0 ? const Vec3(1, 1, 1).withAxis(t.axis, f) : Vec3(f, f, f);
         _applyScale(t, t.scaleFactor);
@@ -983,8 +1008,11 @@ class AppState extends ChangeNotifier {
     for (var i = 0; i <= modIdx; i++) {
       if (o.modifiers[i].enabled) m = o.modifiers[i].apply(m);
     }
-    o.modifiers.removeAt(modIdx);
+    // modifiers up to and including modIdx are baked into the mesh; leaving
+    // them live would re-apply their effect on top of the baked result
+    o.modifiers.removeRange(0, modIdx + 1);
     o.mesh = m;
+    markDirty();
     notifyListeners();
   }
 
@@ -1033,10 +1061,15 @@ class AppState extends ChangeNotifier {
         for (final o in scene.objects) {
           if (!o.visible) continue;
           final (oLo, oHi) = o.evaluatedMesh.bounds;
-          final wLo = o.matrix.transformPoint(oLo);
-          final wHi = o.matrix.transformPoint(oHi);
-          lo = lo.min(wLo.min(wHi));
-          hi = hi.max(wLo.max(wHi));
+          for (final x in [oLo.x, oHi.x]) {
+            for (final y in [oLo.y, oHi.y]) {
+              for (final z in [oLo.z, oHi.z]) {
+                final p = o.matrix.transformPoint(Vec3(x, y, z));
+                lo = lo.min(p);
+                hi = hi.max(p);
+              }
+            }
+          }
         }
         if (lo.x.isInfinite) return;
         camera.frame(lo, hi, aspect);
@@ -1067,11 +1100,13 @@ class AppState extends ChangeNotifier {
   String saveSceneText() => Serializer.encode(scene);
 
   void loadSceneText(String text) {
+    final decoded = Serializer.decode(text); // throws before mutating state
     _pushUndo();
-    scene = Serializer.decode(text);
+    scene = decoded;
     selectedObjects.clear();
     activeObject = null;
     editTarget = null;
+    filePath = null; // pasted content is not the previous file
     _clearEditSel();
     mode = EditorMode.object;
     markDirty();

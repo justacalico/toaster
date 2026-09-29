@@ -97,7 +97,9 @@ class SceneRenderer {
       if (!obj.visible) continue;
       final isEdit = oi == editTargetIndex;
       final sel = selectedObjects.contains(oi);
-      final mesh = obj.evaluatedMesh;
+      // edit mode edits the base mesh; modifiers still apply to the shaded
+      // result but vertex/edge/face overlays must index the base mesh
+      final mesh = isEdit ? obj.mesh : obj.evaluatedMesh;
       final mat = obj.matrix;
       final world = mesh.vertices.map(mat.transformPoint).toList();
 

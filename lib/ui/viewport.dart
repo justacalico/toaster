@@ -123,6 +123,12 @@ class ViewportState extends State<EditorViewport> {
       _dragAxis = null;
       return;
     }
+    if (app.transform != null) {
+      // a press-release during a hotkeyed transform is a confirm/cancel
+      // gesture, never a selection click
+      _downPos = null;
+      return;
+    }
     if (_downPos != null &&
         (e.localPosition - _downPos!).distance < 5 &&
         e.buttons & kPrimaryButton == 0) {
@@ -142,6 +148,7 @@ class ViewportState extends State<EditorViewport> {
   }
 
   void _onScaleUpdate(ScaleUpdateDetails d) {
+    if (app.transform != null) return;
     if (d.scale != 1 && (d.scale - _lastScale).abs() > 0.001) {
       app.camera.zoom(_lastScale / d.scale);
       _lastScale = d.scale;
@@ -181,6 +188,8 @@ class ViewportState extends State<EditorViewport> {
         app.constrainAxis(2);
         return KeyEventResult.handled;
       }
+      // every other key is dead while a transform session is running
+      return KeyEventResult.handled;
     }
 
     // global

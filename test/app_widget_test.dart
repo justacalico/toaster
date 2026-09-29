@@ -639,6 +639,42 @@ void main() {
     await tester.sendEventToBinding(p.up());
   });
 
+  testWidgets('viewport: pointer released mid-session does not pick', (tester) async {
+    final s = await pumpApp(tester);
+    final vp = find.byType(EditorViewport);
+    final center = tester.getCenter(vp);
+    final p = TestPointer(1, PointerDeviceKind.mouse);
+    // LMB down BEFORE the session starts, release while it runs
+    await tester.sendEventToBinding(p.down(center, buttons: kPrimaryButton));
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyG);
+    await tester.pump();
+    expect(s.transform, isNotNull);
+    await tester.sendEventToBinding(p.up());
+    await tester.pump();
+    expect(s.transform, isNotNull); // still running; release was ignored
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump();
+    expect(s.transform, isNull);
+  });
+
+  testWidgets('viewport: press-release during transform does not pick', (tester) async {
+    final s = await pumpApp(tester);
+    final vp = find.byType(EditorViewport);
+    final center = tester.getCenter(vp);
+    final p = TestPointer(1, PointerDeviceKind.mouse);
+    await tester.sendEventToBinding(p.hover(center));
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyG);
+    await tester.pump();
+    expect(s.transform, isNotNull);
+    final before = Set.of(s.selectedObjects);
+    await tester.sendEventToBinding(p.down(center, buttons: kPrimaryButton));
+    await tester.sendEventToBinding(p.up());
+    await tester.pump();
+    // session got confirmed by the down, selection untouched
+    expect(s.transform, isNull);
+    expect(s.selectedObjects, before);
+  });
+
   testWidgets('viewport: alt+A deselects, ctrl+S triggers save', (tester) async {
     final s = await pumpApp(tester);
     await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);

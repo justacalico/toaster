@@ -5,6 +5,7 @@ import 'package:toaster/app_state.dart';
 import 'package:toaster/core/camera.dart';
 import 'package:toaster/core/mesh.dart';
 import 'package:toaster/core/modifiers.dart';
+import 'package:toaster/core/ops.dart';
 import 'package:toaster/core/primitives.dart';
 import 'package:toaster/core/scene.dart';
 import 'package:toaster/core/undo.dart';
@@ -195,6 +196,42 @@ void main() {
       expect(s.scene.objects.single.name, 'b');
       // selections remapped: nothing selected now
       expect(s.selectedObjects, isEmpty);
+    });
+
+    test('selectObject in edit mode moves the edit target', () {
+      final s = AppState();
+      s.scene.add(SceneObject(name: 'a', mesh: Primitives.cube()));
+      s.scene.add(SceneObject(name: 'b', mesh: Primitives.plane()));
+      s.selectObject(0);
+      s.enterEditMode();
+      expect(s.editTarget, 0);
+      s.selectObject(1); // non-additive: switches edit target
+      expect(s.mode, EditorMode.edit);
+      expect(s.editTarget, 1);
+      // additive pick keeps the same target
+      s.selectObject(0, additive: true);
+      expect(s.editTarget, 1);
+    });
+
+    test('deleteEditSelection with empty selection hints', () {
+      final s = AppState();
+      s.scene.add(SceneObject(name: 'a', mesh: Primitives.cube()));
+      s.selectObject(0);
+      s.enterEditMode();
+      s.deselectAll();
+      s.deleteSelected();
+      expect(s.statusHint, 'Nothing selected');
+      expect(s.editObj!.mesh.vertices.length, 8);
+    });
+
+    test('deleteVertices remaps loose edges', () {
+      final m = Mesh(
+        vertices: [Vec3.zero, const Vec3(1, 0, 0), const Vec3(0, 1, 0), const Vec3(0, 0, 1)],
+        edges: [(1, 2), (2, 3)],
+      );
+      MeshOps.deleteVertices(m, {0});
+      expect(m.vertices.length, 3);
+      expect(m.edges, containsAll([(0, 1), (1, 2)]));
     });
 
     test('rotation extraction gimbal branch (90 deg pitch)', () {

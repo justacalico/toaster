@@ -415,8 +415,9 @@ class _ModifierCard extends StatelessWidget {
                 child: Checkbox(
                   value: mod.enabled,
                   onChanged: (v) {
+                    app.beginModifierEdit();
                     mod.enabled = v ?? true;
-                    app.refresh();
+                    app.modifierChanged();
                   },
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
@@ -442,7 +443,10 @@ class _ModifierCard extends StatelessWidget {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-            child: _ModifierSettings(mod: mod, onChanged: () => app.refresh()),
+            child: _ModifierSettings(
+                      mod: mod,
+                      onChanged: app.modifierChanged,
+                      onEditStart: app.beginModifierEdit),
           ),
         ],
       ),
@@ -461,8 +465,9 @@ class _ModifierCard extends StatelessWidget {
 class _ModifierSettings extends StatelessWidget {
   final MeshModifier mod;
   final VoidCallback onChanged;
+  final VoidCallback onEditStart;
 
-  const _ModifierSettings({required this.mod, required this.onChanged});
+  const _ModifierSettings({required this.mod, required this.onChanged, required this.onEditStart});
 
   @override
   Widget build(BuildContext context) {
@@ -474,6 +479,7 @@ class _ModifierSettings extends StatelessWidget {
                 label: 'XYZ'[a],
                 active: m.axis == a,
                 onTap: () {
+                  onEditStart();
                   m.axis = a;
                   onChanged();
                 },
@@ -483,6 +489,7 @@ class _ModifierSettings extends StatelessWidget {
               label: 'Merge',
               active: m.merge,
               onTap: () {
+                onEditStart();
                 m.merge = !m.merge;
                 onChanged();
               },
@@ -498,6 +505,7 @@ class _ModifierSettings extends StatelessWidget {
                 min: 1,
                 max: 12,
                 divisions: 11,
+                onChangeStart: (_) => onEditStart(),
                 onChanged: (v) {
                   m.count = v.round();
                   onChanged();
@@ -516,6 +524,7 @@ class _ModifierSettings extends StatelessWidget {
                 min: 0,
                 max: 3,
                 divisions: 3,
+                onChangeStart: (_) => onEditStart(),
                 onChanged: (v) {
                   m.levels = v.round();
                   onChanged();
@@ -533,6 +542,7 @@ class _ModifierSettings extends StatelessWidget {
                 value: m.amount,
                 min: 0.02,
                 max: 0.5,
+                onChangeStart: (_) => onEditStart(),
                 onChanged: (v) {
                   m.amount = v;
                   onChanged();
@@ -550,6 +560,7 @@ class _ModifierSettings extends StatelessWidget {
                 value: m.thickness.clamp(0.0, 1.0),
                 min: 0.01,
                 max: 1,
+                onChangeStart: (_) => onEditStart(),
                 onChanged: (v) {
                   m.thickness = v;
                   onChanged();

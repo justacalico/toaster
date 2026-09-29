@@ -1,4 +1,5 @@
 import 'vec3.dart';
+import 'mesh.dart';
 import 'scene.dart';
 
 /// Ray vs triangle (Moller-Trumbore). Returns t along the ray or null.
@@ -19,19 +20,22 @@ double? rayTriangle(Vec3 ro, Vec3 rd, Vec3 a, Vec3 b, Vec3 c) {
   return tt > eps ? tt : null;
 }
 
-/// Closest hit of a ray against an object's evaluated mesh in world space.
-/// Returns (t, faceIndex).
-(double, int)? rayMesh(Vec3 ro, Vec3 rd, SceneObject obj) {
+/// Closest hit of a ray against a mesh in world space.
+/// Defaults to the evaluated mesh; pass [mesh] for base-mesh picking
+/// (edit mode). Returns (world-space depth, faceIndex).
+(double, int)? rayMesh(Vec3 ro, Vec3 rd, SceneObject obj, {Mesh? mesh}) {
   final inv = obj.inverseMatrix;
   final lro = inv.transformPoint(ro);
   final lrd = inv.transformDir(rd);
-  final m = obj.evaluatedMesh;
+  final m = mesh ?? obj.evaluatedMesh;
   double? best;
   var bestFace = -1;
   for (final (fi, tri) in m.triangulated()) {
     final t = rayTriangle(lro, lrd, m.vertices[tri[0]], m.vertices[tri[1]], m.vertices[tri[2]]);
     if (t != null && (best == null || t < best)) {
-      best = t;
+      // local t is in scaled units; convert the hit point to world depth
+      final world = obj.matrix.transformPoint(lro + lrd * t);
+      best = (world - ro).dot(rd);
       bestFace = fi;
     }
   }

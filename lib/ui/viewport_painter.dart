@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../app_state.dart';
@@ -254,7 +255,7 @@ List<(int, Offset, Offset)> gizmoSegments(AppState state, Size size) {
     final dx = p2.$1 - c.$1, dy = p2.$2 - c.$2;
     final l = dx * dx + dy * dy;
     if (l < 1e-6) continue;
-    final scale = len / l;
+    final scale = len / math.sqrt(l);
     out.add((a, Offset(c.$1, c.$2), Offset(c.$1 + dx * scale, c.$2 + dy * scale)));
   }
   return out;
