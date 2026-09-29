@@ -118,6 +118,18 @@ void main() {
       expect(f.polys.any((p) => p.editTarget), isTrue);
     });
 
+    test('smooth shading uses vertex normals', () {
+      final s = scene();
+      s.objects[0].smoothShading = true;
+      final f = SceneRenderer(OrbitCamera()).build(s, 800, 600);
+      expect(f.polys, isNotEmpty);
+      // flat control render for comparison
+      s.objects[0].smoothShading = false;
+      final f2 = SceneRenderer(OrbitCamera()).build(s, 800, 600);
+      expect(f.polys.map((p) => p.color.toARGB32()).toSet(),
+          isNot(equals(f2.polys.map((p) => p.color.toARGB32()).toSet())));
+    });
+
     test('verts behind camera are skipped', () {
       final c = OrbitCamera()..target = const Vec3(0, 0, -50);
       final f = SceneRenderer(c).build(scene(), 800, 600);

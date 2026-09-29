@@ -102,6 +102,7 @@ class SceneRenderer {
       final mesh = isEdit ? obj.mesh : obj.evaluatedMesh;
       final mat = obj.matrix;
       final world = mesh.vertices.map(mat.transformPoint).toList();
+      final vNormals = obj.smoothShading && !isEdit ? mesh.vertexNormals() : null;
 
       // projected verts
       final proj = List<Offset?>.filled(world.length, null);
@@ -118,7 +119,12 @@ class SceneRenderer {
         for (final (fi, tri) in mesh.triangulated()) {
           if (proj[tri[0]] == null || proj[tri[1]] == null || proj[tri[2]] == null) continue;
           final faceSel = isEdit && selFaces.contains(fi);
-          final worldN = obj.matrix.transformDir(mesh.faceNormal(fi)).normalized();
+          final worldN = vNormals != null
+              ? obj.matrix
+                  .transformDir(
+                      (vNormals[tri[0]] + vNormals[tri[1]] + vNormals[tri[2]]).normalized())
+                  .normalized()
+              : obj.matrix.transformDir(mesh.faceNormal(fi)).normalized();
           tris.add(_Tri()
             ..pts = [proj[tri[0]]!, proj[tri[1]]!, proj[tri[2]]!]
             ..depth = (depths[tri[0]] + depths[tri[1]] + depths[tri[2]]) / 3
